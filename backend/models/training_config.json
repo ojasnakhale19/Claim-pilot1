@@ -1,0 +1,20 @@
+{
+  "model": "yolo11s",
+  "dataset": "CarDD (6 classes)",
+  "epochs": 90,
+  "imgsz": 640,
+  "batch": 8,
+  "mAP50": 0.75,
+  "mAP50_95": 0.55,
+  "precision": 0.78,
+  "recall": 0.72,
+  "classes": [
+    "dent",
+    "scratch",
+    "crack",
+    "glass_shatter",
+    "lamp_broken",
+    "tire_flat"
+  ],
+  "weights_file": "best.pt"
+}

@@ -1,0 +1,61 @@
+services:
+  # ─── Backend: FastAPI ───────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: claimpilot-ai-backend:latest
+    container_name: claimpilot-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AI_PROVIDER=${AI_PROVIDER:-gemini}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-flash-latest}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      # Image validation thresholds
+      - AUTOSETTLE_MIN_IMAGE_SIDE=240
+      - AUTOSETTLE_MIN_LAPLACIAN_VARIANCE=18
+      - AUTOSETTLE_NEAR_DUPLICATE_DISTANCE=3
+      - AUTOSETTLE_LOW_CONFIDENCE_THRESHOLD=0.40
+    volumes:
+      # Optional: mount for live reload during development
+      # - ./backend:/app/backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ─── Frontend: Nginx + Vite Preview ─────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    image: claimpilot-ai-frontend:latest
+    container_name: claimpilot-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ─── Optional: Redis for Caching/Rate Limiting ──────────────────────
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+
+networks:
+  default:
+    name: claimpilot-network
+
+# volumes:
+#   redis_data:

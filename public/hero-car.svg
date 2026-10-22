@@ -1,0 +1,309 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600">
+  <defs>
+    <!-- Metallic gradients -->
+    <linearGradient id="carBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e8ecf0"/>
+      <stop offset="25%" stop-color="#d1d8dd"/>
+      <stop offset="50%" stop-color="#bdc3c7"/>
+      <stop offset="75%" stop-color="#95a5a6"/>
+      <stop offset="100%" stop-color="#7f8c8d"/>
+    </linearGradient>
+    <linearGradient id="carBodyDark" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3d444b"/>
+      <stop offset="50%" stop-color="#2a2f34"/>
+      <stop offset="100%" stop-color="#1a1d20"/>
+    </linearGradient>
+    <linearGradient id="windowGlass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a2a3a" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#0d1a2a" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0a1520" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="chrome" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f0f3f5"/>
+      <stop offset="30%" stop-color="#d1d8dd"/>
+      <stop offset="60%" stop-color="#bdc3c7"/>
+      <stop offset="100%" stop-color="#95a5a6"/>
+    </linearGradient>
+    <linearGradient id="tireBlack" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="50%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="rimSilver" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f0f3f5"/>
+      <stop offset="50%" stop-color="#d1d8dd"/>
+      <stop offset="100%" stop-color="#bdc3c7"/>
+    </linearGradient>
+    <linearGradient id="brakeCaliper" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="50%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="headlight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#e0f2fe"/>
+      <stop offset="100%" stop-color="#bae6fd"/>
+    </linearGradient>
+    <linearGradient id="taillight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+    <linearGradient id="groundShadow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="rimHighlight" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#bdc3c7" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="15" result="blur"/>
+      <feOffset dx="0" dy="10"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Ground reflection -->
+  <ellipse cx="600" cy="520" rx="380" ry="30" fill="url(#groundShadow)" filter="url(#softShadow)"/>
+
+  <!-- Car body - main silhouette -->
+  <g filter="url(#softShadow)">
+    <!-- Lower body -->
+    <path d="M180 380 
+      Q 150 380 150 350
+      L 150 280
+      Q 150 250 180 250
+      L 320 250
+      Q 340 250 340 270
+      L 340 320
+      Q 340 350 320 350
+      L 180 350
+      Z" fill="url(#carBodyDark)"/>
+    
+    <!-- Main body -->
+    <path d="M180 250 
+      Q 150 250 150 220
+      L 150 180
+      Q 150 150 180 150
+      L 420 150
+      Q 450 150 450 180
+      L 450 220
+      Q 450 250 420 250
+      Z" fill="url(#carBody)"/>
+    
+    <!-- Rear quarter -->
+    <path d="M420 250 
+      Q 450 250 450 280
+      L 450 350
+      Q 450 380 420 380
+      L 400 380
+      Q 380 380 380 350
+      L 380 320
+      Q 380 290 400 270
+      L 420 250
+      Z" fill="url(#carBodyDark)"/>
+    
+    <!-- Roof -->
+    <path d="M180 150 
+      Q 150 150 150 120
+      L 150 100
+      Q 150 80 180 80
+      L 380 80
+      Q 410 80 410 100
+      L 410 120
+      Q 410 150 380 150
+      Z" fill="url(#carBody)"/>
+    
+    <!-- Window frames -->
+    <path d="M170 145 
+      Q 160 145 160 115
+      L 160 95
+      Q 160 85 170 85
+      L 370 85
+      Q 380 85 380 95
+      L 380 115
+      Q 380 145 370 145
+      Z" fill="url(#windowGlass)"/>
+    
+    <!-- B-pillar -->
+    <rect x="295" y="85" width="8" height="65" fill="url(#carBodyDark)"/>
+    
+    <!-- Window reflection highlights -->
+    <path d="M170 85 L 220 85 Q 240 95 220 105 L 170 105 Z" fill="#ffffff" opacity="0.15"/>
+    <path d="M290 85 L 370 85 Q 380 95 370 105 L 290 105 Z" fill="#ffffff" opacity="0.15"/>
+    
+    <!-- Side mirror -->
+    <path d="M165 145 Q 155 145 155 135 L 155 125 Q 155 115 165 115 Z" fill="url(#carBody)"/>
+    <ellipse cx="158" cy="130" rx="4" ry="8" fill="url(#windowGlass)"/>
+    
+    <!-- Door handle -->
+    <rect x="260" y="200" width="35" height="6" rx="3" fill="url(#chrome)"/>
+    
+    <!-- Character line -->
+    <path d="M190 225 Q 300 220 380 225" stroke="url(#chrome)" stroke-width="1.5" fill="none" opacity="0.6"/>
+    
+    <!-- Front fender vent -->
+    <g>
+      <rect x="190" y="170" width="25" height="4" rx="2" fill="url(#chrome)" opacity="0.5"/>
+      <rect x="190" y="176" width="20" height="4" rx="2" fill="url(#chrome)" opacity="0.4"/>
+      <rect x="190" y="182" width="15" height="4" rx="2" fill="url(#chrome)" opacity="0.3"/>
+    </g>
+    
+    <!-- Headlight -->
+    <path d="M150 200 Q 130 200 130 180 L 130 160 Q 130 140 150 140 L 170 140 Q 180 140 180 160 L 180 180 Q 180 200 150 200 Z" fill="url(#headlight)" filter="url(#glow)"/>
+    <path d="M155 165 L 175 165 Q 180 170 175 175 L 155 175 Z" fill="#0ea5e9" opacity="0.8"/>
+    
+    <!-- Taillight -->
+    <path d="M450 180 Q 470 180 470 160 L 470 140 Q 470 120 450 120 L 430 120 Q 420 120 420 140 L 420 160 Q 420 180 450 180 Z" fill="url(#taillight)"/>
+    <rect x="435" y="135" width="20" height="3" rx="1.5" fill="#ffffff" opacity="0.3"/>
+    
+    <!-- Front grille -->
+    <path d="M150 250 Q 130 250 130 230 L 130 150 Q 130 130 150 130" stroke="url(#chrome)" stroke-width="3" fill="none" opacity="0.8"/>
+    <g stroke="url(#chrome)" stroke-width="1" fill="none" opacity="0.6">
+      <line x1="140" y1="240" x2="140" y2="140"/>
+      <line x1="145" y1="240" x2="145" y2="140"/>
+      <line x1="135" y1="240" x2="135" y2="140"/>
+    </g>
+    
+    <!-- Logo badge -->
+    <ellipse cx="250" cy="95" rx="18" ry="12" fill="url(#chrome)"/>
+    <ellipse cx="250" cy="95" rx="12" ry="8" fill="url(#carBody)"/>
+    <path d="M242 95 Q 250 85 258 95 Q 258 100 250 105 Q 242 100 242 95" fill="#0ea5e9" opacity="0.9"/>
+  </g>
+
+  <!-- Wheels -->
+  <g>
+    <!-- Rear wheel -->
+    <g transform="translate(250, 385)">
+      <!-- Tire -->
+      <circle cx="0" cy="0" r="65" fill="url(#tireBlack)"/>
+      <circle cx="0" cy="0" r="62" fill="none" stroke="#0a0a0a" stroke-width="6"/>
+      <!-- Tire tread pattern -->
+      <g fill="none" stroke="#050505" stroke-width="1.5" opacity="0.5">
+        <circle cx="0" cy="0" r="58"/>
+        <circle cx="0" cy="0" r="52"/>
+        <circle cx="0" cy="0" r="46"/>
+      </g>
+      <!-- Rim -->
+      <circle cx="0" cy="0" r="40" fill="url(#rimSilver)"/>
+      <circle cx="0" cy="0" r="38" fill="none" stroke="#e8ecf0" stroke-width="1"/>
+      <!-- Spokes -->
+      <g stroke="url(#rimSilver)" stroke-width="5" fill="none">
+        <line x1="0" y1="-35" x2="0" y2="-15"/>
+        <line x1="0" y1="15" x2="0" y2="35"/>
+        <line x1="-35" y1="0" x2="-15" y2="0"/>
+        <line x1="15" y1="0" x2="35" y2="0"/>
+        <line x1="-25" y1="-25" x2="-10" y2="-10"/>
+        <line x1="25" y1="-25" x2="10" y2="-10"/>
+        <line x1="-25" y1="25" x2="-10" y2="10"/>
+        <line x1="25" y1="25" x2="10" y2="10"/>
+      </g>
+      <!-- Center hub -->
+      <circle cx="0" cy="0" r="14" fill="url(#rimSilver)"/>
+      <circle cx="0" cy="0" r="10" fill="#0ea5e9" opacity="0.9"/>
+      <!-- Lug nuts -->
+      <g fill="url(#rimSilver)">
+        <circle cx="-22" cy="-22" r="3"/>
+        <circle cx="22" cy="-22" r="3"/>
+        <circle cx="-22" cy="22" r="3"/>
+        <circle cx="22" cy="22" r="3"/>
+        <circle cx="-30" cy="0" r="3"/>
+        <circle cx="30" cy="0" r="3"/>
+        <circle cx="0" cy="-30" r="3"/>
+        <circle cx="0" cy="30" r="3"/>
+      </g>
+      <!-- Brake rotor -->
+      <circle cx="0" cy="0" r="32" fill="#1a1a1a" opacity="0.8"/>
+      <!-- Brake caliper -->
+      <rect x="42" y="-20" width="18" height="40" rx="4" fill="url(#brakeCaliper)" filter="url(#glow)"/>
+      <rect x="40" y="-8" width="10" height="16" rx="2" fill="#38bdf8" opacity="0.8"/>
+    </g>
+
+    <!-- Front wheel -->
+    <g transform="translate(480, 385)">
+      <!-- Tire -->
+      <circle cx="0" cy="0" r="65" fill="url(#tireBlack)"/>
+      <circle cx="0" cy="0" r="62" fill="none" stroke="#0a0a0a" stroke-width="6"/>
+      <!-- Tire tread pattern -->
+      <g fill="none" stroke="#050505" stroke-width="1.5" opacity="0.5">
+        <circle cx="0" cy="0" r="58"/>
+        <circle cx="0" cy="0" r="52"/>
+        <circle cx="0" cy="0" r="46"/>
+      </g>
+      <!-- Rim -->
+      <circle cx="0" cy="0" r="40" fill="url(#rimSilver)"/>
+      <circle cx="0" cy="0" r="38" fill="none" stroke="#e8ecf0" stroke-width="1"/>
+      <!-- Spokes -->
+      <g stroke="url(#rimSilver)" stroke-width="5" fill="none">
+        <line x1="0" y1="-35" x2="0" y2="-15"/>
+        <line x1="0" y1="15" x2="0" y2="35"/>
+        <line x1="-35" y1="0" x2="-15" y2="0"/>
+        <line x1="15" y1="0" x2="35" y2="0"/>
+        <line x1="-25" y1="-25" x2="-10" y2="-10"/>
+        <line x1="25" y1="-25" x2="10" y2="-10"/>
+        <line x1="-25" y1="25" x2="-10" y2="10"/>
+        <line x1="25" y1="25" x2="10" y2="10"/>
+      </g>
+      <!-- Center hub -->
+      <circle cx="0" cy="0" r="14" fill="url(#rimSilver)"/>
+      <circle cx="0" cy="0" r="10" fill="#0ea5e9" opacity="0.9"/>
+      <!-- Lug nuts -->
+      <g fill="url(#rimSilver)">
+        <circle cx="-22" cy="-22" r="3"/>
+        <circle cx="22" cy="-22" r="3"/>
+        <circle cx="-22" cy="22" r="3"/>
+        <circle cx="22" cy="22" r="3"/>
+        <circle cx="-30" cy="0" r="3"/>
+        <circle cx="30" cy="0" r="3"/>
+        <circle cx="0" cy="-30" r="3"/>
+        <circle cx="0" cy="30" r="3"/>
+      </g>
+      <!-- Brake rotor -->
+      <circle cx="0" cy="0" r="32" fill="#1a1a1a" opacity="0.8"/>
+      <!-- Brake caliper -->
+      <rect x="42" y="-20" width="18" height="40" rx="4" fill="url(#brakeCaliper)" filter="url(#glow)"/>
+      <rect x="40" y="-8" width="10" height="16" rx="2" fill="#38bdf8" opacity="0.8"/>
+    </g>
+  </g>
+
+  <!-- Subtle highlights on body -->
+  <g opacity="0.3">
+    <path d="M180 160 Q 250 150 320 160" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M200 200 Q 280 195 350 200" stroke="#ffffff" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.5"/>
+    <ellipse cx="200" cy="280" rx="80" ry="15" fill="#ffffff" opacity="0.1"/>
+  </g>
+
+  <!-- Measurement/annotation lines (subtle) -->
+  <g stroke="#0ea5e9" stroke-width="0.5" fill="none" opacity="0.3" stroke-dasharray="4,4">
+    <line x1="150" y1="80" x2="150" y2="30"/>
+    <line x1="150" y1="30" x2="300" y2="30"/>
+    <text x="225" y="20" font-family="monospace" font-size="10" fill="#0ea5e9" opacity="0.4" text-anchor="middle">4800mm</text>
+    
+    <line x1="480" y1="385" x2="480" y2="450"/>
+    <line x1="480" y1="450" x2="250" y2="450"/>
+    <text x="365" y="465" font-family="monospace" font-size="10" fill="#0ea5e9" opacity="0.4" text-anchor="middle">2850mm</text>
+  </g>
+
+  <!-- Corner bracket markers -->
+  <g stroke="#0ea5e9" stroke-width="1.5" fill="none" opacity="0.4">
+    <!-- Front left -->
+    <path d="M150 130 L 150 150 L 170 150"/>
+    <path d="M150 250 L 150 230 L 170 230"/>
+    <!-- Rear right -->
+    <path d="M450 120 L 450 140 L 430 140"/>
+    <path d="M450 380 L 450 360 L 430 360"/>
+  </g>
+
+  <!-- Electric accent line -->
+  <path d="M150 400 Q 300 390 450 400" stroke="url(#brakeCaliper)" stroke-width="2" fill="none" opacity="0.5" stroke-dasharray="10,20"/>
+</svg>

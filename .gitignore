@@ -1,0 +1,88 @@
+# ─── Logs ──────────────────────────────────────────────────────────────
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─── Frontend Build & Cache ────────────────────────────────────────────
+node_modules
+dist
+dist-ssr
+*.local
+.vite
+.eslintcache
+
+# ─── Python / Backend ──────────────────────────────────────────────────
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+env
+.env
+.env.local
+.env.*.local
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.mypy_cache
+.ruff_cache
+*.egg-info
+dist/
+build/
+pip-wheel-metadata/
+
+# ─── IDE & Editor ──────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+
+# ─── OS & Temporary Files ──────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.tmp
+*.temp
+.tmp
+*.bak
+
+# ─── Model Weights (Large Files — Use Git LFS or DVC) ──────────────────
+# backend/models/*.pt
+# backend/models/*.onnx
+# backend/models/*.engine
+
+# ─── Docker ────────────────────────────────────────────────────────────
+.docker
+
+# ─── Test Outputs ──────────────────────────────────────────────────────
+backend/outputs/
+backend/test_outputs/
+*.prof
+
+# ─── Jupyter Notebooks ─────────────────────────────────────────────────
+.ipynb_checkpoints
+*.ipynb
+!notebooks/*.ipynb
+
+# ─── Secrets & Keys ────────────────────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets.yaml
+secrets.yml

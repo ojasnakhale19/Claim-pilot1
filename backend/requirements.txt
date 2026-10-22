@@ -1,0 +1,21 @@
+# ClaimPilot AI Backend Requirements
+fastapi==0.109.0
+uvicorn==0.27.0
+python-multipart==0.0.6
+pydantic>=2.5.3,<3.0.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+ultralytics>=8.3.0
+opencv-python==4.9.0.80
+pillow>=10.0.0
+numpy>=1.26.0
+huggingface-hub==0.20.3
+httpx==0.26.0
+pyyaml>=6.0.1
+requests>=2.31.0
+# PyTorch - install appropriate version for your system
+# CPU: torch --index-url https://download.pytorch.org/whl/cpu
+# CUDA 11.8: torch --index-url https://download.pytorch.org/whl/cu118
+# CUDA 12.1: torch --index-url https://download.pytorch.org/whl/cu121
+torch
+torchvision

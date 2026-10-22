@@ -1,0 +1,79 @@
+version: 1
+
+thresholds:
+  auto_approve_conf: 0.85
+  human_review_conf: 0.55
+
+rules:
+  - name: auto_approve_minor_scratch
+    if:
+      damage_type_in: ["scratch"]
+      severity_in: ["minor"]
+      confidence_gte: 0.85
+    then:
+      action: "AUTO_APPROVE"
+      sop_ref: "damage_triage.md#minor-scratch"
+      reason: "High-confidence minor scratch matches auto-approval policy."
+
+  - name: human_review_moderate_dent
+    if:
+      damage_type_in: ["dent"]
+      severity_in: ["moderate"]
+      confidence_gte: 0.55
+    then:
+      action: "HUMAN_REVIEW"
+      sop_ref: "damage_triage.md#moderate-damage"
+      reason: "Moderate dent should be reviewed by an operator before approval."
+
+  - name: escalate_severe_damage
+    if:
+      severity_in: ["severe"]
+      confidence_gte: 0.55
+    then:
+      action: "ESCALATE"
+      sop_ref: "damage_triage.md#severe-damage"
+      reason: "Severe damage should be escalated for specialist assessment."
+
+  - name: human_review_crack
+    if:
+      damage_type_in: ["crack"]
+      confidence_gte: 0.55
+    then:
+      action: "HUMAN_REVIEW"
+      sop_ref: "damage_triage.md#moderate-damage"
+      reason: "Crack damage requires human review for structural assessment."
+
+  - name: human_review_glass_shatter
+    if:
+      damage_type_in: ["glass_shatter"]
+      confidence_gte: 0.55
+    then:
+      action: "HUMAN_REVIEW"
+      sop_ref: "damage_triage.md#severe-damage"
+      reason: "Glass shatter requires safety assessment and human review."
+
+  - name: human_review_lamp_broken
+    if:
+      damage_type_in: ["lamp_broken"]
+      confidence_gte: 0.55
+    then:
+      action: "HUMAN_REVIEW"
+      sop_ref: "damage_triage.md#moderate-damage"
+      reason: "Broken lamp requires electrical safety verification."
+
+  - name: human_review_tire_flat
+    if:
+      damage_type_in: ["tire_flat"]
+      confidence_gte: 0.55
+    then:
+      action: "HUMAN_REVIEW"
+      sop_ref: "damage_triage.md#moderate-damage"
+      reason: "Tire damage requires roadworthiness assessment."
+
+  - name: low_confidence_human_review
+    if:
+      confidence_lt: 0.55
+    then:
+      action: "HUMAN_REVIEW"
+      sop_ref: "damage_triage.md#low-confidence"
+      reason: "Low confidence: route to human review."
