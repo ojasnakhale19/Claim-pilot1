@@ -24,8 +24,8 @@ import {
   StageIndicator,
   LoadingOverlay,
 } from '../components/cinematic';
-import { cn, revokeObjectURL, getFileSizeString, generateId, formatNumber, type ViewResult, type VideoFourViewAssessmentResponse, type DirectAssessmentResponse, type NegotiateResponse, negotiate, generateReportFromBackend } from '../lib/utils';
-import { generateAINegotiationResponse, generateDamageReport, type DamageReportRequest, type DamageReportResponse, type SettlementBreakdown } from '../lib/aiService';
+import { cn, revokeObjectURL, getFileSizeString, generateId, formatNumber, type ViewResult, type VideoFourViewAssessmentResponse, type DirectAssessmentResponse, type DirectDamageItem, negotiate, generateReportFromBackend } from '../lib/utils';
+import { type DamageReportResponse } from '../lib/aiService';
 import { Card, CardContent, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Progress } from '../components/ui/Progress';
@@ -407,11 +407,6 @@ export function ClaimFlowPage() {
     };
   }, [photos]);
 
-  // Keep ref in sync with latest generateDamageReportForClaim so setTimeout always calls the fresh version
-  useEffect(() => {
-    generateReportRef.current = generateDamageReportForClaim;
-  }, [generateDamageReportForClaim]);
-
   // Scroll to bottom of chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -561,20 +556,26 @@ export function ClaimFlowPage() {
       // These are already aggregated/deduplicated by the backend OpenAI call
       const videoItems = (backendResult.all_detections ?? [])
         .filter((d: any) => d.status === 'confirmed' || d.status === 'suspected' || !d.status)
-        .map((d: any, i: number) => ({
+        .map((d: any, i: number): DirectDamageItem => ({
+          itemId: d.item_id || `video-${i}`,
           component: d.component || backendResult.primary_component || 'Vehicle Component',
           damageType: d.damage_type || 'damage',
           severity: d.severity || backendResult.severity,
           status: d.status || 'confirmed',
+          evidenceViews: d.view ? [d.view] : [],
+          evidenceDescription: `Detected in video + photo assessment (confidence: ${((d.confidence ?? 0.5) * 100).toFixed(0)}%)`,
+          confidence: d.confidence ?? 0.5,
           recommendation: d.recommendation || 'inspect',
+          repairNotes: '',
           costEstimateMin: 0,
           costEstimateMax: 0,
-          evidenceDescription: `Detected in video + photo assessment (confidence: ${((d.confidence ?? 0.5) * 100).toFixed(0)}%)`,
+          costCurrency: 'INR',
+          costAssumptions: [],
         }));
 
       // Deduplicate by component name — only keep unique components
       const seenComponents = new Set<string>();
-      const uniqueVideoItems = videoItems.filter((it: any) => {
+      const uniqueVideoItems = videoItems.filter((it: DirectDamageItem) => {
         if (seenComponents.has(it.component)) return false;
         seenComponents.add(it.component);
         return true;
@@ -862,6 +863,11 @@ export function ClaimFlowPage() {
       setIsGeneratingReport(false);
     }
   }, [assessment, vehicleInfo, messages, assessmentViews, assessmentDamageItems]);
+
+  // Keep ref in sync with latest generateDamageReportForClaim so setTimeout always calls the fresh version
+  useEffect(() => {
+    generateReportRef.current = generateDamageReportForClaim;
+  }, [generateDamageReportForClaim]);
 
   const handleReset = useCallback(() => {
     photos.forEach(p => revokeObjectURL(p.preview));

@@ -497,7 +497,7 @@ export function FuturisticChat({
             </motion.div>
 
             <motion.button
-              onClick={onSendMessage}
+              onClick={() => onSendMessage()}
               disabled={!chatInput.trim() || isBotTyping || disabled}
               className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-electric-500 to-cyan-500 text-background font-medium shadow-glow-electric hover:from-electric-400 hover:to-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all touch-target-comfortable"
               whileHover={{ scale: 1.05, boxShadow: '0 0 30px -5px rgba(14, 165, 233, 0.6)' }}
