@@ -18,7 +18,7 @@ import { Button } from '../ui/Button';
 import { Card, CardContent } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Progress } from '../ui/Progress';
-import { cn, isValidImageFile, getFileSizeString, formatDamageType, API_BASE_URL } from '../../lib/utils';
+import { cn, isValidImageFile, getFileSizeString, formatDamageType } from '../../lib/utils';
 import { createClaimPilotYOLO, type Detection, type InferenceState, filterValidDetections, VALID_DAMAGE_CLASSES_ARRAY } from '../../lib/yoloInference';
 
 const REQUIRED_VIEWS = [
