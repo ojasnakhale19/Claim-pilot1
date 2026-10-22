@@ -1,0 +1,8 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # VITE_DEFAULT_LLM_PROVIDER holds a provider name ("openai"), not a secret.
+  # Scanning it flags every "openai" string in the codebase.
+  SECRETS_SCAN_OMIT_KEYS = "VITE_DEFAULT_LLM_PROVIDER"
