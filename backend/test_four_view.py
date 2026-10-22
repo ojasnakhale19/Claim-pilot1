@@ -2,7 +2,7 @@ import os
 import sys
 sys.path.insert(0, '.')
 os.environ['AI_PROVIDER'] = 'openai'
-os.environ['OPENAI_API_KEY'] = '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'
+os.environ.setdefault('OPENAI_API_KEY', '')  # set OPENAI_API_KEY in your shell; never hardcode it
 os.environ['OPENAI_MODEL'] = 'gpt-4o-mini'
 
 from PIL import Image, ImageDraw
