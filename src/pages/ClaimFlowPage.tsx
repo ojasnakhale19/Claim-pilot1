@@ -523,13 +523,13 @@ export function ClaimFlowPage() {
       // Add photo views
       for (const view of REQUIRED_VIEWS) {
         const photo = backendResult.photos?.[view];
-        if (photo) {
+        if (photo && Array.isArray(photo.detections)) {
           viewsData[view] = {
-            detection_count: photo.detection_count,
+            detection_count: photo.detection_count || 0,
             detections: photo.detections.map(det => ({
-              damage_type: det.damage_type,
-              confidence: det.confidence,
-              bounding_box_xyxy: det.bounding_box_xyxy,
+              damage_type: det.damage_type || 'damage',
+              confidence: det.confidence ?? 0.5,
+              bounding_box_xyxy: det.bounding_box_xyxy || [],
             })),
             annotated_image_base64: photo.annotated_image_base64 ?? undefined,
           };
@@ -537,14 +537,14 @@ export function ClaimFlowPage() {
       }
       
       // Add video frames as a combined view
-      if (backendResult.video_frames && backendResult.video_frames.length > 0) {
-        const allVideoDetections = backendResult.video_frames.flatMap((f: any) => f.detections || []);
+      if (backendResult.video_frames && Array.isArray(backendResult.video_frames) && backendResult.video_frames.length > 0) {
+        const allVideoDetections = backendResult.video_frames.flatMap((f: any) => Array.isArray(f.detections) ? f.detections : []);
         viewsData['video'] = {
           detection_count: allVideoDetections.length,
           detections: allVideoDetections.map((det: any) => ({
-            damage_type: det.damage_type,
-            confidence: det.confidence,
-            bounding_box_xyxy: det.bounding_box_xyxy,
+            damage_type: det.damage_type || 'damage',
+            confidence: det.confidence ?? 0.5,
+            bounding_box_xyxy: det.bounding_box_xyxy || [],
           })),
           annotated_image_base64: undefined,
         };

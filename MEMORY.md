@@ -1,62 +1,105 @@
 # ClaimPilot AI — Memory & Architecture Document
-
-**Last Updated:** 2024-10-22  
-**Version:** 2.1.0  
+**Last Updated:** 2026-10-22 (Updated 23:42 UTC)  
+**Version:** 3.1.0 — Workflow Progression & YOLO+Vision Merging  
 **Purpose:** Complete system documentation for integration and maintenance
 
 ---
 
-## 🔄 INTEGRATION LOG (2024-10-22)
+## 🔄 LATEST FIXES (2026-10-22 Session 2)
 
-### Integrated 14-Frame Majority Voting Pipeline
+### Workflow Progression & Settlement Button — FIXED ✅
+**Issue:** 14-frame video+4-view assessment displayed results inline instead of transitioning through workflow stages. Settlement button was unresponsive.
+
+**Root Cause:** 
+- `VideoFourViewInference.tsx` was storing results in component state and showing them inline
+- "Continue to Settlement" button dispatched a custom event instead of calling parent callback
+- Parent never received signal to transition from 'upload' → 'assessing' → 'assessment'
+
+**Fixes Applied:**
+
+1. **VideoFourViewInference.tsx** — Removed inline results display
+   - Changed line ~302: Removed `setInferenceResults(result); setShowResults(true);`
+   - Now calls `onInferenceComplete(result)` directly after API succeeds
+   - Component hides itself immediately, parent handles the rest
+   - Results view section still in code but never renders (showResults stays false)
+
+2. **Settlement Button Wired Correctly**
+   - Line ~1007: Changed from `window.dispatchEvent(new CustomEvent(...))` to direct `onInferenceComplete(inferenceResults)` call
+   - This was redundant anyway since we now call callback immediately
+
+3. **Effect:** Workflow now properly transitions:
+   - User uploads video + 4 photos → clicks "Start Assessment"
+   - VideoFourViewInference processes → calls `handleVideoFourViewComplete(result)`
+   - Parent sets `stage('assessment')` → DamageAnnotation component shows damage summary
+   - User can review → click "Proceed to Chat" → settlement negotiation
+   - Settlement button correctly wired to `handleConfirmOffer()` callback
+
+### YOLO+Vision Detection Merging — IMPLEMENTED ✅
+**New Feature:** `/assess/video-four-view` endpoint now supports YOLO detection merged with OpenAI Vision
+
+**Implementation:**
+- Backend: Added `use_yolo: bool = Form(default=False)` parameter to `/assess/video-four-view`
+- When `use_yolo=true`, backend runs Detector on all 14 images (10 video frames + 4 photos)
+- Merging logic (main.py ~1130-1160):
+  - Vision results (OpenAI) are primary (higher confidence)
+  - YOLO results added only for damage types NOT already in Vision
+  - YOLO confidence reduced by 40% (secondary source)
+  - Only adds YOLO detections if confidence ≥ threshold
+- Frontend: VideoFourViewInference.tsx now sends `use_yolo=true` in FormData (line ~287)
+
+**Result:** Both models now contribute:
+- OpenAI Vision: High-level reasoning, deduplication, evidence-grounded
+- YOLO: Computer vision confirmations, catches edge cases Vision might miss
+
+### Confidence Threshold Adjustment (Prior Session)
+**Status:** ✅ Already applied in `integrated_pipeline/config.py`
+- From: `{dent:0.25, scratch:0.25, crack:0.30, glass_shatter:0.30, lamp_broken:0.30, tire_flat:0.25}`
+- To: `{dent:0.15, scratch:0.15, crack:0.18, glass_shatter:0.18, lamp_broken:0.18, tire_flat:0.15}`
+- Reason: Lower thresholds catch marginal but valid damage, 0.25–0.30 was rejecting legitimate detections
+
+---
+
+## 🔄 INTEGRATION LOG (2026-10-22 Session 1)
+
+### Integrated 14-Frame Majority Voting Pipeline — Bug Fixes & Router Mounting
 **Source:** `D:\Model Training\car_parts_inference\` → `D:\Model Training\claimpilot-ai\backend\integrated_pipeline\`
 
+The `car_parts_inference/` standalone pipeline was previously adapted into `backend/integrated_pipeline/`. This session fixed the broken integration:
+
+**Fixes Applied:**
+1. **`config.py` MODEL_PATH** — Changed from relative `Path("best.pt")` to absolute `backend/models/best.pt`
+2. **`router.py` get_detector()** — Fixed parameter name `confidence_threshold` → `confidence`; removed call to nonexistent `update_confidence_threshold()` method
+3. **`main.py`** — Added `import logging`, `import time`, `logger` definition, `MODEL_PATH` definition; fixed inline endpoint parameter (`confidence` instead of `confidence_threshold`); removed redundant local `import os`
+4. **`main.py`** — Mounted `integrated_pipeline.router` via `app.include_router(integrated_router)` — adds 3 new endpoints
+5. **`requirements.txt`** — Added `pandas`, `matplotlib`, `seaborn`, `tqdm` for integrated pipeline
+
+**New Endpoints (from mounted router):**
+- `GET /assess/integrated/health` — Model status
+- `POST /assess/integrated/fourteen-frame` — 14-frame majority voting assessment
+- `GET /assess/integrated/config` — Pipeline configuration
+
+**Fixed Endpoint:**
+- `POST /assess/integrated-fourteen-frame` (inline in main.py) — Was completely broken (NameError: logger, MODEL_PATH, time; TypeError: confidence_threshold). Now works.
+
+### Previous Integration (2024-10-22)
 **Added Components:**
 - `backend/integrated_pipeline/config.py` — Configuration with CarDD class mapping, label mapping (lamp_broken → scratch), severity weights
 - `backend/integrated_pipeline/detector.py` — CarDamageDetector with label mapping, majority voting across 14 frames (4 images + 10 video frames), AggregatedResult with per-frame breakdown
 - `backend/integrated_pipeline/visualizer.py` — Annotated outputs, CSV/JSON reports, visualization charts
-- `backend/integrated_pipeline/router.py` — FastAPI endpoint `POST /assess/integrated-fourteen-frame`
+- `backend/integrated_pipeline/router.py` — FastAPI endpoint `POST /assess/integrated/fourteen-frame`
 - `backend/integrated_pipeline/__init__.py` — Package exports
 
 **Modified:**
 - `backend/main.py` — Added import and endpoint `POST /assess/integrated-fourteen-frame`
 
-**Endpoint:** `POST /assess/integrated-fourteen-frame`
-- Accepts: 4 images + 1 video (extracts 10 frames = 14 total)
-- Returns: Majority damage type, severity, per-frame details, vote counts
-- Label mapping: `lamp_broken` → `scratch` (insurance classification)
+---
+
+### ⚠ Testing Environment Note
+On this Windows machine, uvicorn now works correctly (tested Oct 2026). Previous networking issues with asyncio socket binding appear resolved. All endpoints tested and verified working.
 
 ---
 
-### ⚠️ TESTING ENVIRONMENT ISSUE
-**Problem:** On this specific Windows machine, Python's high-level server modules (uvicorn, http.server, socketserver, asyncio.start_server) all report "running" but **fail to actually bind to ports**. 
-
-**Verified Working:**
-- Raw socket in thread with proper HTTP handling ✓
-- PowerShell .NET TcpListener ✓
-
-**Not Working (Environment Issue):**
-- uvicorn.run() — says "running" but no port bound
-- asyncio.start_server() — says "started" but no port bound
-- http.server / socketserver — same issue
-- Only raw `socket.socket()` in thread with manual HTTP handling works
-
-**Root Cause:** Machine-specific Python networking issue (likely Windows Defender / security feature interfering with asyncio/stdlib server socket creation). The integration code is correct and would work on a standard system.
-
-**Impact:** Cannot run live endpoint tests on this machine. Code is production-ready for deployment to standard environments.
-
----
-
-# ClaimPilot AI — Memory & Architecture Document
-
-**Last Updated:** 2024-10-22  
-**Version:** 2.1.0  
-**Purpose:** Complete system documentation for integration and maintenance
-
----
-
-## 🏗️ SYSTEM ARCHITECTURE OVERVIEW
-
+## 🏗 SYSTEM ARCHITECTURE OVERVIEW
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        CLAIMPILOT AI                            │
@@ -78,6 +121,9 @@
 │  │   Deduplicated detections across 14 images                  │
 │  ├── /assess/hybrid         → LLM-enhanced (Gemini/OpenAI)     │
 │  ├── /assess/multimodal     → 3+ photos + 1 video (collective) │
+│  ├── /assess/integrated/    → 14-frame majority voting (YOLO)  │
+│  │   4 images + 1 video (10 frames) = 14 frames                │
+│  │   Label mapping: lamp_broken → scratch                     │
 │  ├── /policy/icici-lombard  → ICICI Lombard policy screening   │
 │  ├── /negotiate             → ChatGPT-powered settlement chat  │
 │  └── /negotiate/{id}/respond → Negotiation round handling      │
@@ -95,25 +141,36 @@
 ## 📦 CORE COMPONENTS & FILES
 
 ### Backend (Python/FastAPI)
+| File | Purpose | Mounted? |
+|------|---------|----------|
+| `backend/main.py` | Main FastAPI app with all endpoints | ✅ Live |
+| `backend/car_damage_detector.py` | CarDD YOLOv8 wrapper (6 damage classes) | Via damage_assessment |
+| `backend/damage_assessment.py` | Policy-driven /assess/ router | ❌ Not mounted |
+| `backend/video_processor.py` | Video frame extraction | ✅ Used by main.py |
+| `backend/multimodal_assessment.py` | Collective 3+ photos + 1 video assessment | ❌ Not mounted |
+| `backend/icici_lombard_screening.py` | ICICI Lombard policy screening | ❌ Not mounted |
+| `backend/negotiation_engine.py` | ChatGPT-powered negotiation | ❌ Not mounted |
+| `backend/integrated_pipeline/` | 14-frame majority voting pipeline | ✅ Mounted (this session) |
+| `backend/agentic/decision_agent.py` | Policy evaluation engine | Via damage_assessment |
+| `backend/agentic/adapters.py` | CV → signal conversion | Via damage_assessment |
+| `backend/agentic/schemas.py` | Pydantic dataclasses | Via damage_assessment |
+| `backend/agentic/trace.py` | Decision trace builder | Via damage_assessment |
+| `backend/agentic/explainer.py` | Customer explanations | Via damage_assessment |
+| `backend/agentic/policy_loader.py` | YAML policy parser | Via damage_assessment |
+| `backend/agentic/sop_retriever.py` | SOP section extraction | Via damage_assessment |
+| `backend/agentic/rag/simple_retriever.py` | Knowledge RAG | Via damage_assessment |
+| `backend/agentic/strategies.py` | Repair strategy simulator | Via damage_assessment |
+| `backend/agentic/vision/` | Inpainting/after-preview | Standalone |
+| `backend/evaluate_model.py` | Model evaluation (mAP, precision/recall) | Standalone |
+
+### Integrated Pipeline (`backend/integrated_pipeline/`)
 | File | Purpose |
 |------|---------|
-| `backend/main.py` | Main FastAPI app with all endpoints |
-| `backend/car_damage_detector.py` | CarDD YOLOv8 wrapper (6 damage classes) |
-| `backend/damage_assessment.py` | Policy-driven /assess/ router |
-| `backend/video_processor.py` | Video frame extraction (uniform/keyframe/scene) |
-| `backend/multimodal_assessment.py` | Collective 3+ photos + 1 video assessment |
-| `backend/icici_lombard_screening.py` | ICICI Lombard policy screening |
-| `backend/negotiation_engine.py` | ChatGPT-powered negotiation |
-| `backend/agentic/decision_agent.py` | Policy evaluation engine |
-| `backend/agentic/adapters.py` | CV → signal conversion |
-| `backend/agentic/schemas.py` | Pydantic dataclasses |
-| `backend/agentic/trace.py` | Decision trace builder |
-| `backend/agentic/explainer.py` | Customer explanations |
-| `backend/agentic/policy_loader.py` | YAML policy parser |
-| `backend/agentic/sop_retriever.py` | SOP section extraction |
-| `backend/agentic/rag/simple_retriever.py` | Knowledge RAG |
-| `backend/agentic/strategies.py` | Repair strategy simulator |
-| `backend/agentic/vision/` | Inpainting/after-preview |
+| `config.py` | Model path (absolute), 6 CarDD classes (underscores), label mapping, severity config, colors, limits |
+| `detector.py` | CarDamageDetector (YOLO), SeverityAssessor, aggregate_results() majority voting |
+| `visualizer.py` | Visualizer — annotated images/video, CSV reports, severity JSON, matplotlib charts |
+| `router.py` | APIRouter(prefix="/assess/integrated") — health, fourteen-frame, config endpoints |
+| `__init__.py` | Exports all config + detector + visualizer + router |
 
 ### Frontend (React/TypeScript)
 | File | Purpose |
@@ -132,6 +189,37 @@
 | `backend/policies/damage_triage.md` | SOP evidence & next steps |
 | `backend/knowledge/repair_playbook.md` | Repair guidance |
 | `backend/knowledge/sla_notes.md` | Service level agreements |
+
+---
+
+## 🌐 API ENDPOINTS SUMMARY
+
+### Live Endpoints (served by main.py)
+| Method | Endpoint | Description | Status |
+|--------|----------|-------------|--------|
+| GET | `/health` | Health check | ✅ Working |
+| GET | `/ai/provider/status` | AI provider info (OpenAI) | ✅ Working |
+| POST | `/assess/four-view` | 4 photos → OpenAI vision assessment | ✅ Accessible |
+| POST | `/assess/hybrid` | Base64 JSON → OpenAI vision | ✅ Accessible |
+| POST | `/assess/video-four-view` | 1 video + 4 photos → OpenAI vision | ✅ Accessible |
+| POST | `/assess/integrated-fourteen-frame` | 4 images + 1 video → 14-frame YOLO | ✅ Fixed (this session) |
+| POST | `/assess/direct` | Primary frontend path → OpenAI | ✅ Accessible |
+| POST | `/report` | Generate claim report via OpenAI | ✅ Accessible |
+| POST | `/negotiate` | Settlement negotiation via OpenAI | ✅ Accessible |
+| GET | `/assess/integrated/health` | Integrated pipeline model status | ✅ New (this session) |
+| POST | `/assess/integrated/fourteen-frame` | 14-frame majority voting (router) | ✅ New (this session) |
+| GET | `/assess/integrated/config` | Pipeline configuration | ✅ New (this session) |
+
+### Defined but NOT Mounted
+| Method | Endpoint | Source File |
+|--------|----------|------------|
+| GET | `/assess/health` | damage_assessment.py |
+| POST | `/assess` | damage_assessment.py |
+| GET | `/assess/policy` | damage_assessment.py |
+| POST | `/assess/multimodal` | multimodal_assessment.py |
+| POST | `/policy/icici-lombard/suitability` | icici_lombard_screening.py |
+| GET | `/idogur10/health` | idogur10_integration.py |
+| POST | `/idogur10/assess` | idogur10_integration.py |
 
 ---
 
@@ -163,7 +251,24 @@ Deduplicate damage items via AI prompt
 Return: 14-image assessment with unique damage instances
 ```
 
-### 3. Policy-Driven Assessment (`/assess/`)
+### 3. Integrated 14-Frame Pipeline (`/assess/integrated/fourteen-frame`)
+```
+Upload 4 images + 1 video
+    ↓
+YOLO detection on 4 images + 10 video frames = 14 total
+    ↓
+Normalize class names (spaces → underscores)
+    ↓
+Apply label mapping (lamp_broken → scratch)
+    ↓
+Assess severity per frame (weighted scoring)
+    ↓
+Majority voting: each frame votes for damage types present
+    ↓
+Return: majority damage type, severity, per-frame details, vote counts
+```
+
+### 4. Policy-Driven Assessment (`/assess/` — not mounted)
 ```
 Upload single image
     ↓
@@ -178,7 +283,7 @@ Match rule → load SOP → build decision trace
 Return: AUTO_APPROVE / HUMAN_REVIEW / ESCALATE + full trace
 ```
 
-### 4. Human Override Governance
+### 5. Human Override Governance
 ```
 Operator sees decision + trace
     ↓
@@ -191,7 +296,7 @@ Mandatory comment
 Immutable audit log: timestamp, original decision, override details
 ```
 
-### 5. Browser Inference (ONNX Runtime Web)
+### 6. Browser Inference (ONNX Runtime Web)
 ```
 Load /best.onnx (640×640, 10 CarDD classes)
     ↓
@@ -207,7 +312,6 @@ Return detections for UI display
 ---
 
 ## 🎯 CARDD MODEL SPECIFICATIONS
-
 | Property | Value |
 |----------|-------|
 | **Model** | YOLOv8n (nano) |
@@ -220,7 +324,7 @@ Return detections for UI display
 | **Recall** | 0.534 |
 | **Image Size** | 640×640 |
 | **Epochs** | 50 |
-| **Model Size** | 5.9 MB |
+| **Model Size** | 5.9 MB (19MB on disk) |
 | **Inference** | CPU real-time (~50ms) |
 
 ---
@@ -243,36 +347,6 @@ Return detections for UI display
 
 ---
 
-## 🌐 API ENDPOINTS SUMMARY
-
-### Assessment
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/assess/health` | Model + policy engine status |
-| POST | `/assess/` | Single image → detections + policy decision |
-| GET | `/assess/policy` | Current rules.yaml + SOP config |
-| POST | `/assess/four-view` | 4 photos → OpenAI vision assessment |
-| POST | `/assess/video-four-view` | 1 video + 4 photos → 14-image deduplicated |
-| POST | `/assess/multimodal` | 3+ photos + 1 video → collective |
-| POST | `/assess/hybrid` | YOLO + LLM reasoning |
-
-### Policy & Negotiation
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/policy/icici-lombard/suitability` | ICICI Lombard screening |
-| POST | `/negotiate/start` | Initialize negotiation session |
-| POST | `/negotiate/{id}/respond` | Process response, return counter-offer |
-| GET | `/negotiate/{id}` | Get negotiation history |
-
-### Legacy (Preserved)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/assess/general` | Multi-image, settlement offers |
-| POST | `/assess/four-view` | Structured 4-view (YOLO-based) |
-| GET | `/model/info` | Model metadata |
-
----
-
 ## 🔧 ENVIRONMENT CONFIGURATION
 
 ### Backend (`backend/.env`)
@@ -281,20 +355,17 @@ Return detections for UI display
 AUTOSETTLE_MODEL_PATH=
 AUTOSETTLE_HF_REPO=shanexf/car-damage-yolo11m-ft
 AUTOSETTLE_HF_FILENAME=damage_best.pt
-
 # Image Validation
 AUTOSETTLE_MIN_IMAGE_SIDE=240
 AUTOSETTLE_MIN_LAPLACIAN_VARIANCE=10
 AUTOSETTLE_NEAR_DUPLICATE_DISTANCE=3
 AUTOSETTLE_LOW_CONFIDENCE_THRESHOLD=0.40
-
 # Hybrid AI (Optional)
 AI_PROVIDER=gemini
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-1.5-flash-latest
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o-mini
-
 # Server
 HOST=0.0.0.0
 PORT=8000
@@ -317,18 +388,11 @@ VITE_DEFAULT_ASSESSMENT_MODE=ai
 
 ## 🧪 TESTING
 
-### Backend Tests (38 tests)
+### Backend Tests
 ```bash
 cd backend
 pytest ../tests/test_api.py agentic/tests/ -v
 ```
-- Health checks
-- Image validation
-- Assessment endpoints (general, four-view, hybrid, video-four-view, multimodal)
-- Policy endpoint
-- Error handling
-- Decision agent unit tests (all 10 CarDD classes)
-- RAG retriever
 
 ### Frontend Linting
 ```bash
@@ -338,17 +402,23 @@ npm run lint
 ---
 
 ## 📁 PROJECT STRUCTURE (Key Paths)
-
 ```
 claimpilot-ai/
 ├── backend/
-│   ├── main.py                      # FastAPI app
+│   ├── main.py                      # FastAPI app (live)
 │   ├── car_damage_detector.py       # YOLOv8 CarDD wrapper
-│   ├── damage_assessment.py         # Policy-driven /assess/
+│   ├── damage_assessment.py         # Policy-driven /assess/ (not mounted)
 │   ├── video_processor.py           # Frame extraction
-│   ├── multimodal_assessment.py     # Collective evidence
-│   ├── icici_lombard_screening.py   # Policy screening
+│   ├── multimodal_assessment.py     # Collective evidence (not mounted)
+│   ├── icici_lombard_screening.py   # Policy screening (not mounted)
 │   ├── negotiation_engine.py        # ChatGPT negotiation
+│   ├── evaluate_model.py            # Model evaluation
+│   ├── integrated_pipeline/         # 14-frame majority voting ✅ MOUNTED
+│   │   ├── config.py
+│   │   ├── detector.py
+│   │   ├── visualizer.py
+│   │   ├── router.py
+│   │   └── __init__.py
 │   ├── agentic/
 │   │   ├── decision_agent.py        # Policy evaluation
 │   │   ├── adapters.py              # CV → signal
@@ -359,6 +429,8 @@ claimpilot-ai/
 │   │   ├── sop_retriever.py         # SOP extraction
 │   │   ├── rag/simple_retriever.py  # Knowledge RAG
 │   │   ├── strategies.py            # Repair strategies
+│   │   ├── expert_ai.py             # LLM commentary (optional)
+│   │   ├── llm/                     # LLM client
 │   │   └── vision/                  # Inpainting
 │   ├── policies/
 │   │   ├── rules.yaml               # Decision rules
@@ -366,8 +438,8 @@ claimpilot-ai/
 │   ├── knowledge/
 │   │   ├── repair_playbook.md
 │   │   └── sla_notes.md
-│   ├── models/best.pt               # CarDD YOLOv8n (5.9 MB)
-│   └── tests/test_api.py            # 28 endpoint tests
+│   ├── models/best.pt               # CarDD YOLOv8n
+│   └── tests/
 ├── src/
 │   ├── lib/yoloInference.ts         # ONNX Runtime Web
 │   ├── lib/aiService.ts             # AI negotiation
@@ -405,7 +477,6 @@ claimpilot-ai/
 ---
 
 ## 🚨 KNOWN CONSTRAINTS & LIMITATIONS
-
 1. **No fallback models** — Requires CarDD-trained `best.pt`
 2. **Policy engine is deterministic** — No LLM in core decision path
 3. **Video max 10s** — Hardcoded in video_processor
@@ -416,9 +487,44 @@ claimpilot-ai/
 
 ---
 
-## 📝 INTEGRATION NOTES FOR NEW PIPELINE
+## ⚠ OUTSTANDING ISSUES (not addressed in this integration)
 
-### Our Car Damage Detection Pipeline (from `D:\Model Training\car_parts_inference\`)
+1. **Two backends, one mounted**: `main.py` (OpenAI-vision, live) vs policy-driven `damage_assessment.py` subsystem (defined, not mounted)
+2. **Class-count inconsistency**: Trained model is 10-class CarDD, but `car_damage_detector.py` declares only 6 classes
+3. **Config vs code drift**: `.env.example` defaults to Gemini; `main.py` hardcodes OpenAI
+4. **CI mismatch**: CI expects root `requirements.txt` and `api` module that don't exist
+5. **Frontend↔backend drift**: Frontend calls endpoints not served by live `main.py`
+6. **icici_lombard_screening bug**: References undefined `ReasonCode.CV_REVIEW_REQUIRED`
+7. **idogur10_integration**: Imports non-existent external repo, fails to import
+
+---
+
+## ✅ VERIFICATION CHECKLIST (Post-Integration — Oct 2026)
+
+### Verified Working:
+- [x] Backend starts without import errors
+- [x] `/health` returns healthy
+- [x] `/ai/provider/status` returns OpenAI config (configured: true)
+- [x] `/assess/integrated/health` — model_loaded: True, correct absolute path
+- [x] `/assess/integrated/config` — 14 frames, 6 classes, label mapping, severity config
+- [x] `/assess/integrated/fourteen-frame` — 4 images + 1 video → 14 frames, 200 OK
+- [x] `/assess/integrated-fourteen-frame` (inline) — 14 frames, 200 OK
+- [x] All pre-existing endpoints accessible (four-view, hybrid, video-four-view, direct, negotiate, report)
+- [x] No existing files disturbed beyond targeted fixes
+- [x] Missing dependencies (pandas, seaborn) installed and added to requirements.txt
+
+### Files Modified:
+1. `backend/integrated_pipeline/config.py` — MODEL_PATH → absolute path
+2. `backend/integrated_pipeline/router.py` — Fixed parameter name + removed nonexistent method calls
+3. `backend/main.py` — Added logging/time/MODEL_PATH, fixed parameter, mounted router
+4. `backend/requirements.txt` — Added pandas, matplotlib, seaborn, tqdm
+5. `MEMORY.md` — Updated with integration status and verification results
+
+---
+
+## 📝 INTEGRATION NOTES
+
+### car_parts_inference Pipeline (source)
 - **Model**: Ultralytics YOLOv5/v8 (.pt format)
 - **Classes**: dent, scratch, crack, glass shatter, lamp broken, tire flat (6 classes)
 - **Features**: 
@@ -427,33 +533,16 @@ claimpilot-ai/
   - Severity assessment with configurable weights
   - Annotated outputs, CSV/JSON reports, visualizations
 
-### Integration Strategy:
-1. **Backend**: Add as alternative detector in `car_damage_detector.py` or new module
-2. **Policy**: Map our class names to CarDD classes for rule compatibility
-3. **Frontend**: Our pipeline is Python-only; frontend uses ONNX
-4. **Video Processing**: Our `max_frames=14` matches video-four-view requirement
-
----
-
-## ✅ VERIFICATION CHECKLIST (Post-Integration)
-
-- [ ] `backend/main.py` health endpoint returns healthy
-- [ ] `/assess/health` shows model_loaded=true, agent_loaded=true
-- [ ] `/assess/` single image → detections + policy decision + trace
-- [ ] `/assess/four-view` 4 photos → OpenAI assessment
-- [ ] `/assess/video-four-view` video+4 photos → 14 images deduplicated
-- [ ] Policy rules.yaml loads correctly
-- [ ] Decision trace includes rule_applied, threshold, evidence
-- [ ] Human override audit log works
-- [ ] Frontend builds: `npm run build`
-- [ ] Frontend dev server: `npm run dev`
-- [ ] Backend tests pass: `pytest ../tests/test_api.py agentic/tests/ -v`
-- [ ] ONNX model converts: `python convert_to_onnx.py backend/models/best.pt public/best.onnx`
+### Integrated Pipeline (in claimpilot-ai)
+- Same detection logic, adapted with underscore class names for CarDD compatibility
+- Added `_normalize_model_class_name()` to handle model's raw names (spaces → underscores)
+- `MODEL_PATH` now points to `backend/models/best.pt` (absolute)
+- Router mounted at `/assess/integrated/` prefix
+- Also accessible via inline endpoint at `/assess/integrated-fourteen-frame`
 
 ---
 
 ## 🔗 REFERENCES
-
 - **CarDD Dataset**: USTC Car Damage Detection
 - **Ultralytics YOLOv8**: https://github.com/ultralytics/ultralytics
 - **ONNX Runtime Web**: https://onnxruntime.ai/docs/get-started/with-javascript.html

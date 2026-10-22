@@ -157,11 +157,20 @@ The `/assess/video-four-view` endpoint processes **14 images** (10 video frames 
 
 1. **Extract** 10 uniformly spaced frames from 8-10s video
 2. **Detect** damage on all 14 images independently
-3. **Deduplicate**: Group by damage type, keep highest-confidence detection per type
-4. **Estimate costs** using unique damage instances only
-5. **Response** includes both raw count and unique count
+3. **Merge OpenAI Vision + YOLO** (dual-model for comprehensive detection)
+   - **OpenAI Vision**: Primary (high confidence, AI-grounded reasoning)
+   - **YOLO**: Secondary confirmations (computer vision verification)
+   - Vision results take precedence; YOLO adds non-duplicate detections
+4. **Deduplicate**: Group by damage type, keep highest-confidence detection per type
+5. **Estimate costs** using unique damage instances only
+6. **Response** includes both raw count and unique count
 
 This prevents the same scratch/dent appearing in multiple frames from inflating repair estimates.
+
+### Dual-Model Advantages
+- **Vision Strengths**: Deep reasoning, multi-modal understanding, deduplication logic
+- **YOLO Strengths**: Computer vision accuracy, edge case detection, real-time performance
+- **Combined**: More comprehensive damage detection with cross-validation
 
 ---
 
@@ -297,7 +306,42 @@ The negotiation AI receives:
 
 ---
 
-## Docker Deployment
+## Latest Updates (October 22, 2026)
+
+### Workflow Progression & YOLO+Vision Merging (v3.1.0)
+
+**Critical Fixes:**
+1. ✅ **Workflow Progression** — Fixed 14-frame assessment to properly transition through workflow stages instead of displaying results inline
+2. ✅ **Settlement Button** — Fixed settlement button to use parent callbacks instead of custom events
+3. ✅ **YOLO+Vision Merging** — Implemented dual-model detection combining OpenAI Vision (primary) with YOLO (secondary confirmations)
+4. ✅ **Confidence Thresholds** — Lowered from 0.25–0.30 to 0.15–0.20 for better damage detection
+5. ✅ **Error Handling** — Added defensive null checks to prevent undefined array access crashes
+
+**Files Modified:**
+- `src/components/cinematic/VideoFourViewInference.tsx` — Removed inline results display, call parent callback immediately
+- `src/pages/ClaimFlowPage.tsx` — Added Array.isArray() checks and fallback values
+- `backend/main.py` — Added YOLO merging logic and proper response building
+- `backend/integrated_pipeline/config.py` — Lowered confidence thresholds
+- `MEMORY.md` — Complete documentation of changes
+
+**Workflow Flow (Now Working):**
+```
+User uploads video + 4 photos
+  → Backend: OpenAI Vision + YOLO detection
+  → Results merged (Vision primary, YOLO secondary)
+  → Parent transitions: upload → assessing → assessment
+  → DamageAnnotation shows results
+  → User proceeds to settlement negotiation
+  → ✅ Complete workflow working correctly
+```
+
+**Testing:**
+- Backend: http://127.0.0.1:8000
+- Frontend: http://localhost:5174
+- All endpoints tested and verified
+- No console errors or runtime crashes
+
+---
 
 ### Build & Run (CPU)
 ```bash

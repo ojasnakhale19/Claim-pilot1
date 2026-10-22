@@ -280,6 +280,7 @@ export function VideoFourViewInference({
       });
       formData.append('confidence_threshold', '0.25');
       formData.append('image_size', '640');
+      formData.append('use_yolo', 'true');  // Enable YOLO+Vision merging
       if (vehicleInfo?.company) formData.append('vehicle_make', vehicleInfo.company);
       if (vehicleInfo?.model) formData.append('vehicle_model', vehicleInfo.model);
       if (vehicleInfo?.year) formData.append('vehicle_year', vehicleInfo.year);
@@ -298,8 +299,8 @@ export function VideoFourViewInference({
       }
 
       const result = await response.json();
-      setInferenceResults(result);
-      setShowResults(true);
+      // Don't store results or show them inline
+      // Instead, immediately call the callback to let parent handle transition
       onInferenceComplete(result);
 
     } catch (err: any) {
@@ -868,7 +869,7 @@ export function VideoFourViewInference({
                 Video Frames (10 Extracted)
               </h4>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 overflow-x-auto pb-4">
-                {inferenceResults.video_frames?.map((frame: any) => (
+                {inferenceResults?.video_frames && Array.isArray(inferenceResults.video_frames) ? inferenceResults.video_frames.map((frame: any) => (
                   <Card key={frame.frame_index} className="border-graphite-700 bg-graphite-900/50">
                     <div className="px-3 py-2 border-b border-graphite-700 flex items-center justify-between">
                       <span className="font-medium text-graphite-100 text-sm">Frame {frame.frame_index}</span>
@@ -878,7 +879,7 @@ export function VideoFourViewInference({
                     </div>
                     <div className="p-2 text-sm text-graphite-400">
                       <p>Time: {(frame.timestamp_ms / 1000).toFixed(1)}s</p>
-                      {frame.detections.length > 0 && (
+                      {frame.detections && Array.isArray(frame.detections) && frame.detections.length > 0 && (
                         <div className="mt-1 space-y-1">
                           {frame.detections.slice(0, 2).map((det: any, i: number) => (
                             <div key={i} className="flex items-center justify-between text-xs p-1 rounded bg-graphite-800/50">
@@ -890,7 +891,7 @@ export function VideoFourViewInference({
                       )}
                     </div>
                   </Card>
-                ))}
+                )) : null}
               </div>
             </motion.div>
 
@@ -995,8 +996,8 @@ export function VideoFourViewInference({
               </Button>
               <Button
                 onClick={() => {
-                  const event = new CustomEvent('claimpilot:assessment-complete', { detail: inferenceResults });
-                  window.dispatchEvent(event);
+                  // Call parent callback to transition workflow
+                  onInferenceComplete(inferenceResults);
                 }}
                 className="flex-1 gap-2 bg-gradient-to-r from-electric-500 to-cyan-500"
               >

@@ -37,17 +37,17 @@ MODEL_PATH = PROJECT_ROOT / "models" / "best.pt"
 _detector: Optional[CarDamageDetector] = None
 
 
-def get_detector(confidence_threshold: float = 0.25) -> CarDamageDetector:
+def get_detector(confidence: float = 0.25) -> CarDamageDetector:
     """Get or create the CarDamageDetector instance."""
     global _detector
     if _detector is None:
         if not MODEL_PATH.exists():
             raise RuntimeError(f"Model not found at {MODEL_PATH}. Ensure best.pt is in models/")
-        logger.info(f"Loading integrated pipeline model from {MODEL_PATH} with threshold {confidence_threshold}")
-        _detector = CarDamageDetector(model_path=str(MODEL_PATH), confidence_threshold=confidence_threshold)
-    elif _detector.confidence_threshold != confidence_threshold:
-        logger.info(f"Updating detector threshold from {_detector.confidence_threshold} to {confidence_threshold}")
-        _detector.update_confidence_threshold(confidence_threshold)
+        logger.info(f"Loading integrated pipeline model from {MODEL_PATH} with confidence {confidence}")
+        _detector = CarDamageDetector(model_path=MODEL_PATH, confidence=confidence)
+    elif _detector.confidence != confidence:
+        logger.info(f"Updating detector confidence from {_detector.confidence} to {confidence}")
+        _detector.confidence = confidence
     return _detector
 
 
@@ -211,7 +211,7 @@ async def assess_fourteen_frame(
 
     # Get detector
     try:
-        detector = get_detector(confidence_threshold=confidence_threshold)
+        detector = get_detector(confidence=confidence_threshold)
     except Exception as e:
         logger.error(f"[{assessment_id}] Detector initialization failed: {e}")
         raise HTTPException(status_code=500, detail=f"Model loading failed: {type(e).__name__}: {e}")

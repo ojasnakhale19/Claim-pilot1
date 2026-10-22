@@ -10,7 +10,9 @@ from pathlib import Path
 # ============================================================
 # MODEL CONFIGURATION
 # ============================================================
-MODEL_PATH = Path("best.pt")  # Your trained Ultralytics YOLO model
+# Absolute path to trained model (relative to backend root)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+MODEL_PATH = _PROJECT_ROOT / "models" / "best.pt"  # CarDD-trained Ultralytics YOLO model
 CONFIDENCE_THRESHOLD = 0.25   # Minimum confidence for detections
 IOU_THRESHOLD = 0.45          # NMS IoU threshold
 DEVICE = "auto"               # "auto", "cpu", "cuda", "mps"
@@ -45,13 +47,14 @@ EFFECTIVE_CLASS_NAMES = [
 
 # Class-specific confidence thresholds (override global if needed)
 # Uses original model class names (CarDD format)
+# Lowered from 0.25-0.30 to 0.15-0.20 to catch more detections
 CLASS_CONF_THRESHOLDS = {
-    "dent": 0.25,
-    "scratch": 0.25,
-    "crack": 0.30,
-    "glass_shatter": 0.30,
-    "lamp_broken": 0.30,
-    "tire_flat": 0.25,
+    "dent": 0.15,
+    "scratch": 0.15,
+    "crack": 0.18,
+    "glass_shatter": 0.18,
+    "lamp_broken": 0.18,
+    "tire_flat": 0.15,
 }
 
 # ============================================================

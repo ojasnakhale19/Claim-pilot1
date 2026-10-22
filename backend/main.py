@@ -6,7 +6,9 @@ import base64
 import hashlib
 import io
 import json
+import logging
 import os
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,7 +24,18 @@ from fastapi.responses import JSONResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, Field
 from video_processor import create_video_processor
-from integrated_pipeline import CarDamageDetector as IntegratedCarDamageDetector, AggregatedResult as IntegratedAggregatedResult
+from integrated_pipeline import (
+    CarDamageDetector as IntegratedCarDamageDetector,
+    AggregatedResult as IntegratedAggregatedResult,
+)
+from integrated_pipeline.router import router as integrated_router
+
+# ─── Logging & Model Path ──────────────────────────────────────────────────
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+logger = logging.getLogger("claimpilot")
+
+_BACKEND_ROOT = Path(__file__).resolve().parent
+MODEL_PATH = _BACKEND_ROOT / "models" / "best.pt"
 
 # Load environment variables from .env file
 load_dotenv()
@@ -760,6 +773,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount the integrated 14-frame pipeline router
+app.include_router(integrated_router)
+
 # ─── Health & Model Info ────────────────────────────────────────────────────
 @app.get("/health")
 async def health_check():
@@ -985,6 +1001,7 @@ async def assess_video_four_view(
     vehicle_model: str = Form(default=""),
     vehicle_year: str = Form(default=""),
     cause_of_damage: str = Form(default=""),
+    use_yolo: bool = Form(default=False, description="Also run YOLO detection and merge with Vision results"),
 ):
     """
     Video + Four-View Damage Assessment using OpenAI GPT-4o-mini vision only.
@@ -1106,12 +1123,102 @@ async def assess_video_four_view(
             "source_index": 0,
         })
     
+    # Optionally run YOLO detection and merge results
+    yolo_detections = []
+    if use_yolo:
+        try:
+            from integrated_pipeline.detector import Detector
+            detector = Detector(MODEL_PATH, device=DEVICE)
+            
+            # Process video frames with YOLO
+            for idx, frame_img in enumerate(video_frames_images):
+                frame_np = np.array(frame_img.convert('RGB'))
+                detections = detector.detect(frame_np, confidence_threshold=confidence_threshold)
+                for det in detections:
+                    yolo_detections.append({
+                        "damage_type": det.class_name,
+                        "confidence": det.confidence,
+                        "severity": "uncertain",  # YOLO doesn't assess severity
+                        "source": "yolo",
+                        "source_index": idx,
+                    })
+            
+            # Process photos with YOLO
+            for view, photo_img in photo_images.items():
+                photo_np = np.array(photo_img.convert('RGB'))
+                detections = detector.detect(photo_np, confidence_threshold=confidence_threshold)
+                for det in detections:
+                    yolo_detections.append({
+                        "damage_type": det.class_name,
+                        "confidence": det.confidence,
+                        "severity": "uncertain",
+                        "source": "yolo",
+                        "source_index": -1,  # Photo, not video frame
+                    })
+        except Exception as e:
+            logger.warning(f"YOLO detection failed, using Vision only: {e}")
+    
+    # Merge YOLO + Vision detections
+    # Vision detections have higher confidence (AI judgment), YOLO adds secondary confirmations
+    merged_detections = all_detections.copy()
+    
+    # Add YOLO detections that don't already exist in Vision
+    vision_types = {d["damage_type"] for d in all_detections}
+    for yolo_det in yolo_detections:
+        if yolo_det["damage_type"] not in vision_types:
+            # Only add if confidence is reasonably high
+            if yolo_det["confidence"] >= confidence_threshold:
+                merged_detections.append({
+                    **yolo_det,
+                    "confidence": max(0.4, yolo_det["confidence"]),  # Reduce confidence since it's secondary
+                })
+    
+    # Use merged detections for final aggregation
+    all_detections = merged_detections
+    
     # Estimate costs using evidence-grounded aggregation
     min_cost, max_cost, severity, primary_component, summary = _aggregate_openai_damage_items(ai_result)
     settlement_offer = int((min_cost + max_cost) / 2 * 0.7) if min_cost > 0 else 0
     
     # Build response
     processing_time = int((time.time() - start_time) * 1000)
+    
+    # Build video_frames structure with actual detections grouped by frame
+    video_frames_result = []
+    for i in range(len(video_frames_images)):
+        frame_detections = [d for d in all_detections if d.get("source_index") == i]
+        video_frames_result.append({
+            "frame_index": i,
+            "timestamp_ms": int((i / max(len(video_frames_images), 1)) * (video_duration * 1000)) if video_processed else 0,
+            "detections": [
+                {
+                    "damage_type": d.get("damage_type", "damage"),
+                    "confidence": d.get("confidence", 0.5),
+                    "bounding_box_xyxy": []
+                }
+                for d in frame_detections
+            ],
+            "detections_count": len(frame_detections),
+        })
+    
+    # Build photos structure with actual detections
+    photos_result = {}
+    for view_idx, view in enumerate(REQUIRED_VIEWS):
+        photo_detections = [d for d in all_detections if d.get("source_index") == -1 and view_idx == REQUIRED_VIEWS.index(view)]
+        photos_result[view] = {
+            "photo_index": view_idx,
+            "filename": f"{view}.jpg",
+            "detections": [
+                {
+                    "damage_type": d.get("damage_type", "damage"),
+                    "confidence": d.get("confidence", 0.5),
+                    "bounding_box_xyxy": []
+                }
+                for d in photo_detections
+            ],
+            "detections_count": len(photo_detections),
+            "annotated_image_base64": None,
+        }
     
     return VideoFourViewAssessmentResponse(
         assessment_id=assessment_id,
@@ -1121,8 +1228,8 @@ async def assess_video_four_view(
         video_frames_extracted=len(video_frames_images),
         video_duration_seconds=video_duration if video_processed else 0.0,
         photos_processed=len(photo_images),
-        video_frames=[{"frame_index": i, "timestamp_ms": 0, "detections_count": 0, "top_detection": None} for i in range(len(video_frames_images))],
-        photos={view: {"photo_index": i, "filename": f"{view}.jpg", "detections_count": 0, "top_detection": None} for i, view in enumerate(REQUIRED_VIEWS)},
+        video_frames=video_frames_result,
+        photos=photos_result,
         all_detections=[
             {
                 "damage_type": normalize_damage_type(it.get("damageType", "damage")),
@@ -1240,7 +1347,6 @@ async def assess_integrated_fourteen_frame(
     - Damage type votes and totals
     """
     import tempfile
-    import os
     start_time = time.time()
     assessment_id = f"INT14-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
 
@@ -1277,7 +1383,7 @@ async def assess_integrated_fourteen_frame(
 
     # Get integrated detector
     try:
-        detector = IntegratedCarDamageDetector(model_path=str(MODEL_PATH), confidence_threshold=confidence_threshold)
+        detector = IntegratedCarDamageDetector(model_path=MODEL_PATH, confidence=confidence_threshold)
     except Exception as e:
         logger.error(f"[{assessment_id}] Detector initialization failed: {e}")
         raise HTTPException(status_code=500, detail=f"Model loading failed: {type(e).__name__}: {e}")
